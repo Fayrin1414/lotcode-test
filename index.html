@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lot Code Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+        .preview {
+            display: flex;
+            justify-content: space-around;
+        }
+        .preview img {
+            width: 45%;
+            border: 1px solid #ccc;
+            padding: 5px;
+        }
+        .result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
+</head>
+<body>
+    <h2>Lot Code Checker</h2>
+    <div class="container">
+        <input type="file" id="referenceInput" accept="image/*">
+        <input type="file" id="imageInput" accept="image/*" capture="environment">
+        <div class="preview">
+            <div>
+                <p>Uploaded Image</p>
+                <img id="uploadedImage" src="" alt="Uploaded Image">
+            </div>
+            <div>
+                <p>Reference Image</p>
+                <img id="referenceImage" src="" alt="Reference Image">
+            </div>
+        </div>
+        <p class="result" id="result">Waiting for comparison...</p>
+    </div>
+
+    <script>
+        async function extractTextFromImage(imageSrc) {
+            try {
+                const { data: { text } } = await Tesseract.recognize(imageSrc, 'eng');
+                return text.trim();
+            } catch (error) {
+                console.error("OCR Error:", error);
+                return "";
+            }
+        }
+
+        function handleFileUpload(inputElement, imageElement) {
+            const file = inputElement.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imageElement.src = e.target.result;
+                    if (inputElement.id === 'imageInput') {
+                        setTimeout(compareImages, 1000);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        document.getElementById('referenceInput').addEventListener('change', function() {
+            handleFileUpload(this, document.getElementById('referenceImage'));
+        });
+
+        document.getElementById('imageInput').addEventListener('change', function() {
+            handleFileUpload(this, document.getElementById('uploadedImage'));
+        });
+
+        async function compareImages() {
+            const refImage = document.getElementById('referenceImage').src;
+            const uploadedImage = document.getElementById('uploadedImage').src;
+            
+            if (refImage && uploadedImage) {
+                const refText = await extractTextFromImage(refImage);
+                const uploadedText = await extractTextFromImage(uploadedImage);
+                
+                const resultElement = document.getElementById('result');
+                if (refText && uploadedText) {
+                    if (refText === uploadedText) {
+                        resultElement.textContent = "Match Found: Lot code is correct!";
+                        resultElement.style.color = 'green';
+                    } else {
+                        resultElement.textContent = "Mismatch: Lot code does not match!";
+                        resultElement.style.color = 'red';
+                    }
+                } else {
+                    resultElement.textContent = "Unable to extract text from one or both images.";
+                    resultElement.style.color = 'orange';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
